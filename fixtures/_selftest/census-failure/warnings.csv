@@ -1,0 +1,2 @@
+source,path,warning,detail
+cross-check,excluded-cache,file-count-mismatch python=0 robocopy=1,1

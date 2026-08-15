@@ -1,0 +1,4 @@
+pattern,disposition,reason
+.,keep-in-place,fixture root
+alpha,archive,dest=archive/alpha
+lonely.txt,junk-disposal,fixture removal

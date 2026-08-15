@@ -1,0 +1,8 @@
+path,type,size,mtime,git_tracked,top_level,disposition,reason
+.,directory,0,2026-08-15T13:03:29.599435+00:00,0,.,keep-in-place,fixture root
+excluded-cache,excluded,0,2026-08-15T13:03:29.597915+00:00,0,excluded-cache,excluded-by-policy,child_count=2
+lonely.txt,file,10,2026-08-15T13:03:29.591856+00:00,0,lonely.txt,,
+alpha,directory,0,2026-08-15T13:03:29.605505+00:00,0,alpha,keep-in-place,fixture content
+alpha/a.txt,file,3,2026-08-15T13:03:29.603488+00:00,0,alpha,keep-in-place,fixture content
+alpha/nested,directory,0,2026-08-15T13:03:29.625032+00:00,0,alpha,keep-in-place,fixture content
+alpha/nested/b.txt,file,5,2026-08-15T13:03:29.625032+00:00,0,alpha,keep-in-place,fixture content

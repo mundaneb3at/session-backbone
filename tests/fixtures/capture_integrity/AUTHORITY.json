@@ -1,0 +1,28 @@
+{
+  "authority": "capture-integrity-audit-correction-2026-08-07/FINAL-PROVISIONAL-v2",
+  "final_freeze_sha256": "975a68fdb8701b1adb5a250f4ff54c4fdcb3d94a406c4ab5080228725ef76343",
+  "files": {
+    "expected-counters-v2.json": {
+      "bytes": 1952,
+      "rows": 1,
+      "sha256": "f3f126512ed48395fc418ca3de71f76db30485f064812eaa184c01c54be3acdd"
+    },
+    "expected-events-v2.jsonl": {
+      "bytes": 57179,
+      "rows": 104,
+      "sha256": "9830a78c5986a6e1ef3b9ef52ed1d856ef110e87a72c3f60d90263f86bb308c9"
+    },
+    "expected-receipts-v2.jsonl": {
+      "bytes": 52728,
+      "rows": 169,
+      "sha256": "6d0182494c8a6345c4361178acaa4aafedb22b6d973d07be1008ac80485ed70c"
+    },
+    "occurrences-v2.jsonl": {
+      "bytes": 152043,
+      "rows": 169,
+      "sha256": "4decb05134860d9d0386f44177f94835e729250593c80f9d3670d426bbbf2502"
+    }
+  },
+  "fixture_only": true,
+  "version": "CI-STAGING-AUTHORITY-v1"
+}

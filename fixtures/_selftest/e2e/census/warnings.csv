@@ -1,0 +1,3 @@
+source,path,warning,detail
+robocopy,alpha,file-count-unparseable,0
+robocopy,excluded-cache,file-count-unparseable,0

@@ -1,0 +1,30 @@
+{
+ "assignments": {
+  "revisit-storage-rules": {
+   "first_seen": "2026-07-22 23:40",
+   "slug": "revisit-storage-rules",
+   "source": "backfill-threads-2026-07-22",
+   "topic": "storage"
+  },
+  "session-b-real-id": {
+   "extra_topics": ["archives"],
+   "first_seen": "2026-07-18 13:47",
+   "slug": "investigate-index-errors",
+   "source": "classified",
+   "topic": "planning"
+  },
+  "session-c-real-id": {
+   "first_seen": "2026-07-18 13:47",
+   "slug": "consolidate-storage-rules",
+   "source": "classified",
+   "topic": "storage"
+  },
+  "session-x-empty-slug": {
+   "first_seen": "2026-07-18 13:47",
+   "slug": "",
+   "source": "classified",
+   "topic": "ghost-topic"
+  }
+ },
+ "meta": {"count": 4, "last_run": "2026-07-22 23:40", "last_untagged_pct": 0.0}
+}

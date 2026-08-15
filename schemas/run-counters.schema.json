@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-backbone.capture-integrity.v1/run-counters.schema.json",
+  "title": "OccurrenceAndSemanticEventCounters",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "total_source_occurrences", "total_dispositions", "total_semantic_owner_events",
+    "total_emitted_events", "by_disposition", "by_event_class", "by_reason_code"
+  ],
+  "properties": {
+    "total_source_occurrences": {"type": "integer", "minimum": 0},
+    "total_dispositions": {"type": "integer", "minimum": 0},
+    "total_semantic_owner_events": {"type": "integer", "minimum": 0},
+    "total_emitted_events": {"type": "integer", "minimum": 0},
+    "by_disposition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["EMITTED", "CONTRIBUTED", "SUPPRESSED", "DROPPED", "REJECTED"],
+      "properties": {
+        "EMITTED": {"type": "integer", "minimum": 0},
+        "CONTRIBUTED": {"type": "integer", "minimum": 0},
+        "SUPPRESSED": {"type": "integer", "minimum": 0},
+        "DROPPED": {"type": "integer", "minimum": 0},
+        "REJECTED": {"type": "integer", "minimum": 0}
+      }
+    },
+    "by_event_class": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "ordinary_user_turn", "queued_mid_turn_user_message", "queue_operation_record",
+        "attachment_only_message", "message_with_attachment_and_text",
+        "steering_interruption", "resumed_session", "close_handoff_event"
+      ],
+      "properties": {
+        "ordinary_user_turn": {"$ref": "#/$defs/classCounter"},
+        "queued_mid_turn_user_message": {"$ref": "#/$defs/classCounter"},
+        "queue_operation_record": {"$ref": "#/$defs/classCounter"},
+        "attachment_only_message": {"$ref": "#/$defs/classCounter"},
+        "message_with_attachment_and_text": {"$ref": "#/$defs/classCounter"},
+        "steering_interruption": {"$ref": "#/$defs/classCounter"},
+        "resumed_session": {"$ref": "#/$defs/classCounter"},
+        "close_handoff_event": {"$ref": "#/$defs/classCounter"}
+      }
+    },
+    "by_reason_code": {
+      "type": "object",
+      "propertyNames": {"enum": [
+        "OWNER_EVENT_EMITTED", "SEMANTIC_EVENT_ASSEMBLY", "DUPLICATE_DURABLE_ID",
+        "NON_OWNER_ACTOR", "TOOL_RECORD", "SYSTEM_BOUNDARY", "CARRIED_HISTORY_ECHO",
+        "MALFORMED_JSON", "NON_OBJECT_JSON", "MALFORMED_RECORD", "MISSING_ACTOR",
+        "INVALID_ATTACHMENT", "MISSING_REQUIRED_FIELD", "INVALID_TIMESTAMP"
+      ]},
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    }
+  },
+  "$defs": {
+    "classCounter": {
+      "type": "object", "additionalProperties": false,
+      "required": ["semantic_events", "emitted_events", "contributing_occurrences", "dropped_occurrences"],
+      "properties": {
+        "semantic_events": {"type": "integer", "minimum": 0},
+        "emitted_events": {"type": "integer", "minimum": 0},
+        "contributing_occurrences": {"type": "integer", "minimum": 0},
+        "dropped_occurrences": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
