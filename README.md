@@ -1,7 +1,6 @@
 # session-backbone
 
-![CI](https://github.com/OWNER/session-backbone/actions/workflows/ci.yml/badge.svg)
-<!-- replace OWNER with the GitHub account after creating the repo -->
+![CI](https://github.com/mundaneb3at/session-backbone/actions/workflows/ci.yml/badge.svg)
 
 A small, deterministic, **standard-library-only** Python toolchain that turns AI-assistant
 session history (raw JSONL transcripts, close/handoff records, chat-app exports) into

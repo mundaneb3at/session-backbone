@@ -1,0 +1,50 @@
+=== census.py --self-test ===
+UNASSIGNED: 0
+SUMMARY: {"exit_code": 0, "git_tracked_files": 4, "rows": 7, "unassigned": 0, "warnings": 1}
+UNASSIGNED: 1
+lonely.txt
+SUMMARY: {"exit_code": 1, "git_tracked_files": 4, "rows": 7, "unassigned": 1, "warnings": 1}
+SUMMARY: {"assertions": 18, "passed": true}
+SELF-TEST PASS: 18 assertions
+EXIT: 0
+
+=== threads-build.py --self-test ===
+SUMMARY: {"conflicts": 2, "rows": 9, "sessions": 6, "skipped_by_reason": {"malformed": 1, "no_claim": 1}, "unknown": 4}
+SUMMARY: {"assertions": 27, "passed": true}
+SELF-TEST PASS: 27 assertions
+EXIT: 0
+
+=== threads-query.py --self-test ===
+| goal | status (provenance) | last-touched | pointers |
+|---|---|---|---|
+| Consolidate duplicate storage rules | open@new-session-log | 2026-07-16 | handoff=new.md |
+| Consolidate old storage rules | claimed-done@old-session-log | 2026-07-01 | handoff=old.md |
+SUMMARY: {"hits": 2, "loaded": 3, "malformed": 1, "skipped": 0}
+FALLBACK: python brain-index/brain.py search "consolidate storage"
+NO-MATCH
+SUMMARY: {"hits": 0, "loaded": 3, "malformed": 1, "skipped": 0}
+FALLBACK: python brain-index/brain.py search "quantum banana"
+SUMMARY: {"assertions": 10, "passed": true}
+SELF-TEST PASS: 10 assertions
+EXIT: 0
+
+=== prompt-cluster.py --self-test ===
+SUMMARY: {"clusters": 2, "files": 3, "prompts": 12, "read_errors": 0, "skipped": 0, "unclustered_percent": 33.3}
+SUMMARY: {"assertions": 16, "passed": true}
+SELF-TEST PASS: 16 assertions
+EXIT: 0
+
+=== export-convert.py --self-test ===
+SUMMARY: {"conversations_before_min_date": 1, "conversations_date_unknown": 0, "conversations_duplicate_uuid": 0, "conversations_malformed": 0, "conversations_missing_uuid": 0, "conversations_total": 3, "conversations_written": 1, "conversations_zero_human": 1, "exit_code": 0, "parse_errors": 0, "prompts": 2, "write_errors": 0}
+SUMMARY: {"assertions": 15, "passed": true}
+SELF-TEST PASS: 15 assertions
+EXIT: 0
+
+=== map-history.py --self-test ===
+SUMMARY: {"canonical_attachment_only": 0, "canonical_events": 0, "canonical_post_cutover": 0, "canonical_superseded_by_close": 0, "canonical_text_events": 0, "citation_problems": 2, "close_rows": 3, "clusters": 3, "dropped_non_workspace": 1, "echo_collapsed": 1, "exit_code": 0, "harness_noise_dropped": 1, "legacy_close_files": 1, "legacy_superseded_by_canonical": 0, "missing_inputs": 0, "note_turns": 2, "parse_errors": 1, "pre_july_records": 8, "records": 16, "seeded_threads": 2, "session_notes_files": 1, "shown": 3, "spanning_threads": 1}
+SUMMARY: {"canonical_attachment_only": 0, "canonical_events": 0, "canonical_post_cutover": 0, "canonical_superseded_by_close": 0, "canonical_text_events": 0, "citation_problems": 2, "close_rows": 3, "clusters": 3, "dropped_non_workspace": 1, "echo_collapsed": 1, "exit_code": 0, "harness_noise_dropped": 1, "legacy_close_files": 1, "legacy_superseded_by_canonical": 0, "missing_inputs": 0, "note_turns": 2, "parse_errors": 1, "pre_july_records": 8, "records": 16, "seeded_threads": 2, "session_notes_files": 1, "shown": 3, "spanning_threads": 1}
+SUMMARY: {"exit_code": 2, "pre_july_records": 0}
+SUMMARY: {"assertions": 58, "passed": true}
+SELF-TEST PASS: 58 assertions
+EXIT: 0
+
