@@ -22,8 +22,13 @@ The contract, which every tool here enforces rather than documents:
 4. **Nothing is invented.** Provenance-only status labels (`claimed-done@<session>`, never a
    bare "done"), no fabricated timestamps, no semantic fields synthesized from thin inputs.
 
-Python 3, no dependencies, no build step. Developed and CI-tested on Windows
-(`census.py` optionally cross-checks against `robocopy`; everything else is portable).
+Python 3.8+, no dependencies, no build step.
+
+**Windows only.** That is the only platform CI covers, and the only one this has been run
+on. `census.py` shells out to `robocopy` (falling back to `scandir` when absent) and to
+`git` (tolerated when absent); there are no other platform-specific calls, so Linux and
+macOS may well work — but they are untested, and until CI covers them treat them as
+unsupported rather than trusting that sentence.
 
 ## Quickstart
 
@@ -153,3 +158,7 @@ tool prints last.
 
 census 18 · threads-build 27 · threads-query 10 · prompt-cluster 16 · export-convert 15 ·
 map-history 58 · unittest suite: 14 tests.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
