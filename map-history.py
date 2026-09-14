@@ -21,7 +21,9 @@ import argparse, hashlib, json, re, string, sys
 from collections import Counter
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import owner_events
+import producer_stamp
 
 # --- normalisation borrowed from prompt-cluster.py so both tools cluster text the same way ---
 PATHS = re.compile(r"(?:[a-zA-Z]:[\\/][^\s]+|(?:https?://|file://)\S+|(?:\.?\.?[\\/])[^\s]+)")
@@ -303,6 +305,15 @@ def catalog_pre_july(path, stats):
     return total, temp, real_ids
 
 
+# When a record BECAME KNOWABLE, not when it happened. May/June prompts/quotes were purged before
+# the harvester existed; what survives was extracted by mining runs on 2026-07-11..13, so this
+# script could not have known about them before that window -- knowledge_date is fixed to it rather
+# than defaulting to the event date, which would silently claim same-day knowledge that never
+# existed. Every other lane (close rows, legacy handoffs, session notes, canonical events) is
+# written at-or-near its own event, so it keeps the default (knowledge_date == event date).
+MINED_RECOVERY_DATE = "2026-07-12"
+
+
 def load_prompts(path, stats, key, workspace_only=True):
     """pre-July lane: verbatim prompts recovered by the 2026-07-11/12 mining runs."""
     items = []
@@ -329,7 +340,8 @@ def load_prompts(path, stats, key, workspace_only=True):
         stats["prompts"] += 1
         items.append({"session_id": str(row.get("session_id") or ""), "date": date,
                       "text": text, "lane": "prompt", "verdict": "", "ref": "",
-                      "slug": "", "handoff": "", "project": ""})
+                      "slug": "", "handoff": "", "project": "",
+                      "knowledge_date": MINED_RECOVERY_DATE})
     return items
 
 
@@ -506,7 +518,8 @@ def load_quotes(path, stats, key):
         items.append({"session_id": str(row.get("sessionId") or row.get("session_id") or ""),
                       "date": date, "text": str(text), "lane": "quote", "verdict": "",
                       "ref": str(row.get("quote_locator") or ""), "slug": "",
-                      "handoff": str(row.get("source_path") or ""), "project": ""})
+                      "handoff": str(row.get("source_path") or ""), "project": "",
+                      "knowledge_date": MINED_RECOVERY_DATE})
         stats["quotes"] += 1
     return items
 
@@ -543,7 +556,8 @@ def seeded_threads(items, seeds):
                 and any(t in m["text"].lower() for t in terms)]
         if not hits:
             out.append({"label": name, "times_seen": 0, "records": 0, "first_seen": "",
-                        "last_seen": "", "root_caused": "", "fix": "no close-row match",
+                        "last_seen": "", "knowledge_date": "", "confidence": confidence_for("seeded"),
+                        "root_caused": "", "fix": "no close-row match",
                         "still_open": "unknown", "grade": "seeded", "sessions": [],
                         "spans_eras": False, "exemplars": [], "key": "seed"})
             continue
@@ -552,6 +566,7 @@ def seeded_threads(items, seeds):
         row = summarize(hits)
         row["label"] = name
         row["grade"] = "seeded"
+        row["confidence"] = confidence_for("seeded")   # overwrite: grade above just changed too
         out.append(row)
     return out
 
@@ -660,6 +675,40 @@ def label_for(group, names, doc_freq=None):
     return " ".join(ranked[:6]) if ranked else "(unnamed)"
 
 
+def validate_knowledge_dates(items):
+    """Hard invariant: a record cannot be knowable before it happened.
+
+    Omni Analyst enforces this in schema (`CHECK (knowledge_date >= event_date)`); here it is a
+    run-time assertion over the loaded corpus, raised rather than warned, because a silently
+    backdated record is exactly the look-ahead-bias failure mode the constraint exists to make
+    structurally impossible. Missing `knowledge_date` defaults to the record's own event date
+    (immediate knowledge), which always satisfies the invariant trivially.
+    """
+    bad = [m for m in items if m.get("knowledge_date", m["date"]) < m["date"]]
+    if bad:
+        m = bad[0]
+        raise ValueError(
+            "knowledge_date {} precedes event date {} for session {} ({} total violation(s))".format(
+                m.get("knowledge_date"), m["date"], m.get("session_id", ""), len(bad)))
+
+
+# Grade IS the ordinal confidence signal already in this corpus -- mapped to a bounded [0,1]
+# number rather than inventing a second scale. Ranked by how much of the ask+outcome pair survives:
+# mixed spans both eras (strongest); close-row has a recorded verdict; legacy-close has an outcome
+# but no structured verdict; legacy+prompts mixes that with ask-only evidence; prompts-only is the
+# ask alone (weakest); seeded is keyword-matched, a different method entirely, so it sits at the
+# middle rather than being ranked against the others.
+GRADE_CONFIDENCE = {"mixed": 0.90, "close-row": 0.80, "legacy-close": 0.55,
+                     "legacy+prompts": 0.45, "prompts-only": 0.30, "seeded": 0.50}
+
+
+def confidence_for(grade):
+    """Bounded, range-checked confidence for a grade. See GRADE_CONFIDENCE above."""
+    value = GRADE_CONFIDENCE.get(grade, 0.30)
+    assert 0.0 <= value <= 1.0, "confidence out of bounds for grade " + grade
+    return value
+
+
 def summarize(group):
     """Derive every ledger column from the members. No judgement here -- only counting."""
     dates = sorted(m["date"] for m in group if m["date"])
@@ -711,10 +760,14 @@ def summarize(group):
     # sessions scored that as recurrence. A reviewer found 14 of 21 clusters were single-day fanout.
     # This is the third inflation mechanism in this corpus, after resume-echo and harness noise.
     days = sorted({m["date"] for m in group if m["date"]})
+    # When the THREAD (not any one record) became fully knowable -- the latest knowledge_date
+    # among its members, since a row's evidence isn't complete until its last-arriving record was.
+    knowledge_date = max((m.get("knowledge_date", m["date"]) for m in group), default="")
     return {"key": cluster_key(group), "signature": signature(group),
             "days": len(days), "single_day": len(days) <= 1, "lanes": sorted(lanes),
             "times_seen": len(sessions) or len(group), "records": len(group),
             "first_seen": dates[0] if dates else "", "last_seen": latest,
+            "knowledge_date": knowledge_date, "confidence": confidence_for(grade),
             "root_caused": root, "fix": fix, "still_open": "no" if resolved else "yes",
             "grade": grade, "sessions": sessions,
             # Date-based, not lane-based: legacy-close handoffs are pre-July evidence too, and a
@@ -802,6 +855,12 @@ def rank(row):
 
 # ---------------------------------------------------------------- report
 
+# Rows below this heading are reported but NOT ranked. A days==1 row is same-day fan-out, which
+# the report itself calls "not a thread that keeps coming back" -- ranking it would publish a
+# recurrence number this document already declares unmeaningful.
+INSUFFICIENT_HEADING = "### Insufficient evidence — same-day only (n=1 day, not ranked)"
+
+
 def cell(text, width=96):
     text = " ".join(str(text or "").split()).replace("|", "\\|")
     return text if len(text) <= width else text[: width - 1] + "\u2026"
@@ -811,8 +870,10 @@ def write_report(out, rows, stats, coverage, now, top, seeded=(), caveat="", inp
     shown = rows[:top]
     lines = ["# MAP-HISTORY.md \u2014 recurrence ledger", ""]
     if now:
-        lines += ["_Generated by `map-history.py` on " + now +
-                  ". Regenerable output \u2014 re-run the script, never hand-edit this file._", ""]
+        # M1 (ledger-guards-m1-m2-m5-b4, 2026-09-04): normalised to the same frontmatter shape
+        # threads-build.py uses, so a stale/failed producer reads the same way across views.
+        lines += [producer_stamp.frontmatter_block({"generated-at": now}, status="ok"), ""]
+        lines += ["_Regenerable output \u2014 re-run the script, never hand-edit this file._", ""]
     if inputs:
         # Self-describing on purpose: a reader arriving with only this file must be able to
         # regenerate it and find the sources behind any row. --out is omitted so that two runs
@@ -837,21 +898,49 @@ def write_report(out, rows, stats, coverage, now, top, seeded=(), caveat="", inp
         "**`days` is the recurrence measure, not `sessions`.** Concurrent sibling sessions make one "
         "ask land 2-3 times within minutes, which counting sessions scores as recurrence; a "
         "`days = 1` row is same-day fan-out, not a thread that keeps coming back. Rows are sorted "
-        "by days for that reason.",
+        "by days for that reason, and `days = 1` rows are **excluded from the ranking entirely** — "
+        "they appear unranked under *Insufficient evidence* below. Ranking a row this page calls "
+        "same-day fan-out would publish a recurrence number the page itself calls unmeaningful.",
         "",
         "| # | thread | days | sessions | first seen | last seen | root-caused at | fix landed? | still open? | evidence |",
         "|---|---|---|---|---|---|---|---|---|---|",
     ]
     cites = []
-    for i, r in enumerate(shown, 1):
+
+    def emit(i, r, label_prefix):
         mark = r.get("cite_mark", "")
         if r.get("cite_note"):
-            cites.append("- row {}: {}".format(i, r["cite_note"]))
-        lines.append("| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |".format(
-            i, cell(r["label"], 66) + (" _(same-day only)_" if r["single_day"] else ""),
+            cites.append("- {}{}: {}".format(label_prefix, i, r["cite_note"]))
+        return "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |".format(
+            i, cell(r["label"], 66),
             r["days"], r["times_seen"], r["first_seen"] or "?", r["last_seen"] or "?",
-            (cell(r["root_caused"] or "\u2014", 50) + (" " + mark if mark else "")),
-            cell(r["fix"], 40), r["still_open"], r["grade"]))
+            # 200 not 50: a plans-archive path is ~90 chars and a truncated pointer cannot be
+            # opened by the reader (root-tier burn 2026-09-04 measured 14 of 24 ranked rows cut).
+            (cell(r["root_caused"] or "\u2014", 200) + (" " + mark if mark else "")),
+            cell(r["fix"], 40), r["still_open"], r["grade"])
+
+    # Small-sample suppression. A days==1 row is same-day fan-out; this document already says so
+    # in the caveat above. Ranking it anyway would publish a recurrence number the same page
+    # calls unmeaningful -- so those rows are reported below, unranked, instead of being either
+    # ranked or silently dropped. Both alternatives lose information a ledger needs to keep.
+    ranked = [r for r in shown if not r["single_day"]]
+    insufficient = [r for r in shown if r["single_day"]]
+
+    for i, r in enumerate(ranked, 1):
+        lines.append(emit(i, r, "row "))
+
+    if insufficient:
+        lines += ["", INSUFFICIENT_HEADING, "",
+                  "Touched on a single day, so they cannot evidence recurrence \u2014 concurrent "
+                  "sibling sessions make one ask land 2-3 times within minutes. Kept here because "
+                  "absence of recurrence evidence is not evidence of absence: a thread can be real "
+                  "and simply young. Not ranked, not counted as recurring.", "",
+                  "| # | thread | days | sessions | first seen | last seen | root-caused at | "
+                  "fix landed? | still open? | evidence |",
+                  "|---|---|---|---|---|---|---|---|---|---|"]
+        for i, r in enumerate(insufficient, 1):
+            lines.append(emit(i, r, "same-day row "))
+
     if len(rows) > top:
         lines += ["", "_Showing top {} of {} threads that recurred across >=2 sessions "
                       "(`--top` to widen). Threads below the cut are single-session or "
@@ -968,6 +1057,8 @@ def run(args):
         print("FAIL: " + str(error), file=sys.stderr)
         summary = {"exit_code": 2, "canonical_error": str(error)}
         print("SUMMARY: " + json.dumps(summary, sort_keys=True))
+        if args.out and Path(args.out).exists():
+            producer_stamp.mark_stale(args.out, "frontmatter")
         return 2, summary, []
 
     # Evidence precedence is value-specific. Close rows retain verdicts, canonical events retain
@@ -1000,12 +1091,23 @@ def run(args):
     if args.require_pre_july and not pre:
         print("FAIL: pre-July lane loaded 0 records; ledger would be July-only", file=sys.stderr)
         print("SUMMARY: " + json.dumps({"exit_code": 2, "pre_july_records": 0}, sort_keys=True))
+        if args.out and Path(args.out).exists():
+            producer_stamp.mark_stale(args.out, "frontmatter")
         return 2, {}, []
 
     # Sort before clustering: greedy clustering is order-sensitive, so a stable order is what makes
     # the output byte-identical across runs.
     allitems = sorted(items + pre + canonical_post,
                       key=lambda m: (m["date"], m["lane"], m["session_id"], m["text"]))
+    try:
+        validate_knowledge_dates(allitems)
+    except ValueError as error:
+        print("FAIL: " + str(error), file=sys.stderr)
+        print("SUMMARY: " + json.dumps({"exit_code": 2, "knowledge_date_error": str(error)},
+                                       sort_keys=True))
+        if args.out and Path(args.out).exists():
+            producer_stamp.mark_stale(args.out, "frontmatter")
+        return 2, {}, []
     groups = cluster(allitems)
     stats["records_clustered"] = sum(len(g) for g in groups)
 
@@ -1107,6 +1209,52 @@ def run(args):
 
 # ---------------------------------------------------------------- self-test
 
+def _probe_row(key, days, single_day):
+    """A minimal write_report-shaped row. Only the fields the table renderer touches."""
+    return {"key": key, "label": key, "days": days, "single_day": single_day,
+            "times_seen": 2, "records": 2, "first_seen": "2026-06-01",
+            "last_seen": "2026-06-01" if single_day else "2026-06-09",
+            "root_caused": "", "fix": "not met", "still_open": "yes", "grade": "close-row",
+            "spans_eras": False, "lanes": ["prompt"], "exemplars": [], "sessions": ["s1", "s2"]}
+
+
+def _suppression_probe():
+    """A days==1 row must not occupy a ranked position.
+
+    The report already labels such a row same-day fan-out and states it is 'not a thread that
+    keeps coming back'. Ranking it anyway publishes a number the same document calls
+    unmeaningful -- the min_bucket_n failure mode. Fixture clusters are all multi-day, so this
+    builds a synthetic single-day row rather than asserting over `rows` (which would pass
+    vacuously).
+    """
+    import tempfile
+    rows = [_probe_row("multi-day-thread", 4, False),
+            _probe_row("same-day-fanout-thread", 1, True)]
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "probe.md"
+        write_report(str(out), rows, Counter(), [], "2026-01-01", 40)
+        text = out.read_text(encoding="utf-8")
+    ranked = text.split(INSUFFICIENT_HEADING)[0] if INSUFFICIENT_HEADING in text else text
+    if "same-day-fanout-thread" in ranked:
+        return False, "a days==1 row still occupies a ranked position in the main table"
+    if INSUFFICIENT_HEADING not in text:
+        return False, "no insufficient-evidence section; the same-day row was dropped silently"
+    if "same-day-fanout-thread" not in text:
+        return False, "the same-day row vanished entirely instead of being segregated"
+    if "multi-day-thread" not in ranked:
+        return False, "a genuine multi-day thread was wrongly suppressed"
+    return True, ""
+
+
+def _raises_on_backdated_knowledge():
+    try:
+        validate_knowledge_dates([{"date": "2026-07-01", "knowledge_date": "2026-06-01",
+                                    "session_id": "s1"}])
+    except ValueError:
+        return True
+    return False
+
+
 def self_test():
     import tempfile
     a = 0
@@ -1135,6 +1283,15 @@ def self_test():
         bad = argparse.Namespace(**{**vars(args), "prompts": [], "quotes": [],
                                     "session_notes": None, "out": str(Path(td) / "x.md")})
         bad_code = run(bad)[0]
+
+        # M1 (ledger-guards-m1-m2-m5-b4, 2026-09-04): re-run the SAME failure against the
+        # real (good) output path and assert the existing file gets marked FAILED with its
+        # body untouched, instead of silently keeping its old "producer-status: ok".
+        good_text_before = out.read_text(encoding="utf-8")
+        bad_same_out = argparse.Namespace(**{**vars(args), "prompts": [], "quotes": [],
+                                             "session_notes": None, "out": str(out)})
+        run(bad_same_out)
+        good_text_after = out.read_text(encoding="utf-8")
 
         checks = [
             (code == 0, "run failed"),
@@ -1179,6 +1336,11 @@ def self_test():
                         {"date": "2026-06-01", "text": "b", "session_id": "s2", "lane": "prompt",
                          "verdict": "", "ref": "", "handoff": "", "tokens": {"b"}}])["single_day"],
              "two sessions on one day not flagged as same-day fan-out"),
+            # Small-sample suppression: the report already CALLS a days==1 row same-day fan-out,
+            # so it must not also rank it. Publishing a number you have declared unmeaningful is
+            # the failure this guards. Fixture rows are all multi-day, so a synthetic single-day
+            # row is required -- asserting over `rows` alone would pass vacuously.
+            (_suppression_probe()[0], _suppression_probe()[1]),
             ("`days` is the recurrence measure" in text, "days-vs-sessions caveat missing"),
             # primitive-close lane: the only surviving record of pre-catalog session OUTCOMES
             (summary["legacy_close_files"] == 1, "legacy close handoff not parsed: "
@@ -1240,6 +1402,22 @@ def self_test():
             (normalize("Use C:\\secret\\file42.md now") == "use now", "path/digit stripping"),
             (normalize("it was in the of and a") == "", "stopword stripping"),
             (len(by_key) == len(rows), "cluster keys not unique"),
+            # gap 2: knowledge_date -- must never precede the event it describes, and the check
+            # must RAISE (not warn) so a backdated record can't silently ship.
+            (_raises_on_backdated_knowledge(), "knowledge_date < event_date did not raise"),
+            (all(r["knowledge_date"] >= r["last_seen"] for r in rows if r["knowledge_date"]),
+             "row knowledge_date precedes its own last-seen event date"),
+            (all(r.get("knowledge_date", "") == r["last_seen"] for r in rows
+                 if "prompt" not in r["lanes"] and "quote" not in r["lanes"]),
+             "a lane with immediate knowledge got a lagged knowledge_date"),
+            # gap 3: confidence -- bounded, present on every row, and ranked the way the grade is.
+            (all(0.0 <= r["confidence"] <= 1.0 for r in rows), "confidence out of [0,1] bounds"),
+            (confidence_for("mixed") > confidence_for("close-row") >
+             confidence_for("prompts-only"), "confidence does not rank grades in evidence order"),
+            ("producer-status: ok" in good_text_before, "M1 producer-status stamp missing on success"),
+            ("producer-status: FAILED" in good_text_after, "M1 mid-run failure did not mark stale"),
+            (good_text_before.split("---\n\n", 1)[-1] == good_text_after.split("---\n\n", 1)[-1],
+             "M1 mark_stale corrupted the body"),
         ]
     for ok, msg in checks:
         a += 1

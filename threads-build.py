@@ -4,6 +4,9 @@ import argparse, datetime, json, os, re, shutil, sys, tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import producer_stamp
+
 TOKEN_RE=re.compile(r"[a-z0-9]+")
 
 def tokens(text):
@@ -33,10 +36,14 @@ def session_threads(row,stats):
         stats["skipped_invalid_goals"]+=1; raw=[]
     for item in raw:
         if isinstance(item,dict):
-            goal=str(item.get("goal","") or "").strip()
+            # 2026-09-13: accept the legacy {text,outcome} goal shape (July close_schema 1-2 rows,
+            # 4 live atlas rows / 18 goal dicts) with the SAME alias set map-history.py:127-129
+            # already uses. Without it those rows flattened to claimed-unknown despite carrying an
+            # explicit outcome. Still provenance-only: we read a structured field, never prose.
+            goal=str(item.get("goal") or item.get("text") or "").strip()
             if not goal:
                 stats["skipped_invalid_goal_item"]+=1; continue
-            verdict=verdict_name(item.get("verdict"))
+            verdict=verdict_name(item.get("verdict") or item.get("outcome"))
             found.append({"goal":goal,"status":"claimed-"+verdict+"@"+slug,
                           "state":"met" if verdict=="met" else "unknown"})
         elif isinstance(item,str) and item.strip():
@@ -277,7 +284,8 @@ def write_outputs(args,rows,stats):
            "catalog-source-counts: "+json.dumps(stats["catalog_source_counts"],sort_keys=True),
            "registry-entries: "+str(stats["registry_entries"]),
            "prompt-estate-files: "+str(stats["prompt_files"]),
-           "unknown-count: "+str(unknown),"conflict-count: "+str(conflicts),"---","",
+           "unknown-count: "+str(unknown),"conflict-count: "+str(conflicts),
+           "producer-status: ok","---","",
            "# THREADS",""]
     for topic in sorted(grouped):
         lines += ["## "+topic,"",
@@ -332,7 +340,7 @@ def self_test():
                 and r["status"]=="claimed-unknown@revisit-storage-rules"]
     real_open=[r for r in rows if r["slug"]=="revisit-storage-rules"
                and "open-threads@revisit-storage-rules" in r["status_sources"]]
-    checks=[(code==0,"run failed"),(summary["sessions"]==6,"tolerant session count"),
+    checks=[(code==0,"run failed"),(summary["sessions"]==7,"tolerant session count"),
         (summary["skipped_by_reason"].get("malformed")==1,"malformed count"),
         (summary["skipped_by_reason"].get("no_claim")==1,"no-claim count"),
         (len(rows)==len(json_rows),"json row count"),
@@ -341,6 +349,12 @@ def self_test():
         (any(r["topic"]=="untagged" for r in rows),"untagged missing"),
         ("claimed-partial@investigate-index-errors" in statuses,"dict verdict provenance"),
         ("claimed-unknown@minimal-missing-fields" in statuses,"legacy string provenance"),
+        # 2026-09-13: legacy {text,outcome} goal dicts must grade, not flatten to claimed-unknown.
+        # RED first: fails against the pre-alias session_threads() (verified before the alias landed).
+        ("claimed-met@legacy-text-outcome" in statuses
+         and "claimed-superseded@legacy-text-outcome" in statuses
+         and "claimed-unknown@legacy-text-outcome" not in statuses,
+         "legacy text/outcome goal keys (map-history.py alias set)"),
         (sum(x.startswith("open-threads@") for x in statuses)==2,"open-thread provenance"),
         (any(r["goal"]=="Open threads: 2" and r.get("open_thread_count")==2
              for r in rows),"open-thread count fallback"),
@@ -353,7 +367,8 @@ def self_test():
          "conflict sources missing"),
         (any("prompt-estate=" in p for r in rows for p in r["pointers"]),"prompt pointer"),
         (any("transcript=" in p for r in rows for p in r["pointers"]),"real path fields"),
-        ("| goal | status (provenance)" in markdown,"table missing")]
+        ("| goal | status (provenance)" in markdown,"table missing"),
+        ("producer-status: ok" in markdown,"M1 producer-status stamp missing")]
     # resolve_archive: archived basename resolves; unknown path passes through
     checks+=[(resolve_archive(r"C:\nope\archived-plan.md")==str(arch/"archived-plan.md"),
               "archive fallback resolves"),
@@ -395,6 +410,38 @@ def self_test():
             print("SELF-TEST FAIL: "+msg)
             print("SUMMARY: "+json.dumps({"assertions":assertions,"passed":False},sort_keys=True))
             return 1
+    # M1 (ledger-guards-m1-m2-m5-b4, 2026-09-04): every stage of this pipeline is
+    # deliberately tolerant (docstring: "tolerant source parsing") -- there is no natural
+    # input that makes run() raise. Fault-inject instead: monkeypatch run() to raise, call
+    # main() for real, and assert the existing (good) THREADS.md gets marked FAILED with
+    # its body untouched. RED first: with `global _run_impl` removed and main() calling the
+    # real run() directly (no override hook), this assertion fails because nothing raises
+    # -- verified manually before adding the override hook below.
+    real_argv=sys.argv
+    sys.argv=[real_argv[0],"--catalog",args.catalog,"--chests",args.chests,
+              "--prompt-estate",args.prompt_estate,"--out",args.out,"--json",args.json,
+              "--now",args.now]
+    orig_run=globals()["run"]
+    def _boom(a): raise RuntimeError("M1 selftest fault injection")
+    globals()["run"]=_boom
+    try:
+        try:
+            main()
+            print("SELF-TEST FAIL: mid-run failure did not raise")
+            return 1
+        except RuntimeError:
+            pass
+    finally:
+        globals()["run"]=orig_run
+        sys.argv=real_argv
+    after=Path(args.out).read_text(encoding="utf-8")
+    if "producer-status: FAILED" not in after:
+        print("SELF-TEST FAIL: M1 mid-run failure did not mark THREADS.md stale")
+        return 1
+    if "| goal | status (provenance)" not in after:
+        print("SELF-TEST FAIL: M1 mark_stale corrupted the body")
+        return 1
+    assertions+=1
     print("SUMMARY: "+json.dumps({"assertions":assertions,"passed":True},sort_keys=True))
     print("SELF-TEST PASS: "+str(assertions)+" assertions")
     return 0
@@ -413,5 +460,13 @@ def main():
     if a.self_test: return self_test()
     missing=[name for name in ("catalog","chests","prompt_estate","out","now") if not getattr(a,name)]
     if missing: p.error("required arguments missing: "+", ".join("--"+x.replace("_","-") for x in missing))
-    return run(a)[0]
+    try:
+        return run(a)[0]
+    except Exception:
+        # M1 (ledger-guards-m1-m2-m5-b4, 2026-09-04): a mid-run death must not leave
+        # THREADS.md's old timestamp+content looking current. Mark it stale, then re-raise
+        # so the failure is still loud (exit non-zero, traceback visible).
+        if a.out and Path(a.out).exists():
+            producer_stamp.mark_stale(a.out, "frontmatter")
+        raise
 if __name__=="__main__": sys.exit(main())

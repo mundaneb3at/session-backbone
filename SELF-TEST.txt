@@ -1,17 +1,17 @@
 === census.py --self-test ===
 UNASSIGNED: 0
-SUMMARY: {"exit_code": 0, "git_tracked_files": 4, "rows": 7, "unassigned": 0, "warnings": 1}
+SUMMARY: {"exit_code": 0, "git_tracked_files": 5, "rows": 7, "unassigned": 0, "warnings": 1}
 UNASSIGNED: 1
 lonely.txt
-SUMMARY: {"exit_code": 1, "git_tracked_files": 4, "rows": 7, "unassigned": 1, "warnings": 1}
+SUMMARY: {"exit_code": 1, "git_tracked_files": 5, "rows": 7, "unassigned": 1, "warnings": 1}
 SUMMARY: {"assertions": 18, "passed": true}
 SELF-TEST PASS: 18 assertions
 EXIT: 0
 
 === threads-build.py --self-test ===
-SUMMARY: {"conflicts": 2, "rows": 9, "sessions": 6, "skipped_by_reason": {"malformed": 1, "no_claim": 1}, "unknown": 4}
-SUMMARY: {"assertions": 27, "passed": true}
-SELF-TEST PASS: 27 assertions
+SUMMARY: {"conflicts": 2, "rows": 11, "sessions": 7, "skipped_by_reason": {"malformed": 1, "no_claim": 1}, "unknown": 5}
+SUMMARY: {"assertions": 30, "passed": true}
+SELF-TEST PASS: 30 assertions
 EXIT: 0
 
 === threads-query.py --self-test ===
@@ -41,10 +41,13 @@ SELF-TEST PASS: 15 assertions
 EXIT: 0
 
 === map-history.py --self-test ===
+FAIL: pre-July lane loaded 0 records; ledger would be July-only
+FAIL: pre-July lane loaded 0 records; ledger would be July-only
 SUMMARY: {"canonical_attachment_only": 0, "canonical_events": 0, "canonical_post_cutover": 0, "canonical_superseded_by_close": 0, "canonical_text_events": 0, "citation_problems": 2, "close_rows": 3, "clusters": 3, "dropped_non_workspace": 1, "echo_collapsed": 1, "exit_code": 0, "harness_noise_dropped": 1, "legacy_close_files": 1, "legacy_superseded_by_canonical": 0, "missing_inputs": 0, "note_turns": 2, "parse_errors": 1, "pre_july_records": 8, "records": 16, "seeded_threads": 2, "session_notes_files": 1, "shown": 3, "spanning_threads": 1}
 SUMMARY: {"canonical_attachment_only": 0, "canonical_events": 0, "canonical_post_cutover": 0, "canonical_superseded_by_close": 0, "canonical_text_events": 0, "citation_problems": 2, "close_rows": 3, "clusters": 3, "dropped_non_workspace": 1, "echo_collapsed": 1, "exit_code": 0, "harness_noise_dropped": 1, "legacy_close_files": 1, "legacy_superseded_by_canonical": 0, "missing_inputs": 0, "note_turns": 2, "parse_errors": 1, "pre_july_records": 8, "records": 16, "seeded_threads": 2, "session_notes_files": 1, "shown": 3, "spanning_threads": 1}
 SUMMARY: {"exit_code": 2, "pre_july_records": 0}
-SUMMARY: {"assertions": 58, "passed": true}
-SELF-TEST PASS: 58 assertions
+SUMMARY: {"exit_code": 2, "pre_july_records": 0}
+SUMMARY: {"assertions": 67, "passed": true}
+SELF-TEST PASS: 67 assertions
 EXIT: 0
 

@@ -122,6 +122,11 @@ tool prints last.
   archive copy (a live-but-purgeable file is archived at build time, not merely referenced).
   Defaults: plans root `~/.claude/plans`, archive `~/.claude/plans-archive`; override with
   `THREADS_PLANS_ROOT` / `THREADS_PLANS_ARCHIVE`.
+- Legacy `{text, outcome}` goal dicts are accepted via the same alias set `map-history.py`
+  already uses (`goal`/`text`, `verdict`/`outcome`) — a structured field, still provenance-only.
+- The output carries a `producer-status` stamp (`ok` on success). A mid-run failure marks the
+  *existing* `--out` file `FAILED (marked stale …)` in place, body untouched, so a dead producer
+  can't leave a stale report looking current.
 
 ### threads-query.py / prompt-cluster.py
 
@@ -144,6 +149,14 @@ tool prints last.
   flagged as such. Every row's root-cause citation is verified against `--memory-dir`, and
   transposed (`[!]`), superseded (`[S]`), and missing (`[?]`) citations are flagged.
 - Output is byte-deterministic for identical inputs (`--now` is caller-supplied).
+- `days == 1` rows (same-day fan-out) are reported unranked under a separate *Insufficient
+  evidence* heading instead of being ranked or dropped — ranking a number the report itself
+  calls unmeaningful would be worse than segregating it.
+- Every row carries a bounded `confidence` (derived from `grade`) and a `knowledge_date` — when
+  the record became knowable, not when it happened. A record cannot be knowable before it
+  happened; this is a run-time invariant, not a warning.
+- Output carries the same `producer-status` stamp as `threads-build.py`, marked `FAILED` in
+  place on a mid-run error.
 
 ## Repository layout
 
@@ -156,8 +169,8 @@ tool prints last.
 
 ## Verified self-test assertion counts
 
-census 18 · threads-build 27 · threads-query 10 · prompt-cluster 16 · export-convert 15 ·
-map-history 58 · unittest suite: 14 tests.
+census 18 · threads-build 30 · threads-query 10 · prompt-cluster 16 · export-convert 15 ·
+map-history 67 · unittest suite: 14 tests.
 
 ## License
 

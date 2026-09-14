@@ -887,7 +887,15 @@ def publish_bundle(occurrences: list[dict[str, Any]], output_dir: Path, *,
         summary = {
             "version": "CI-PRODUCTION-STAGING-v1",
             "schema_version": SCHEMA_VERSION,
-            "result": "PASS",
+            # IA-012: "PASS" was unconditional, so a run that extracted zero
+            # semantic events (e.g. a provider format the parser rejects every
+            # occurrence of) still reported success. A downstream consumer
+            # can no longer tell schema-mismatch-total-loss from an
+            # empty-input day without this distinct sentinel.
+            # Flag D: `events` alone can't distinguish "no input" from "input,
+            # totally rejected" - both produce an empty list. Gate on
+            # `occurrences` too so an empty-input day still reads PASS.
+            "result": "PASS" if (events or not occurrences) else "PASS_EMPTY_COVERAGE",
             "input_mode": input_mode,
             "input": {"path_label": captured_input.path.name, **captured_input.identity},
             "counts": {
