@@ -1,0 +1,4 @@
+{"topic":"storage","goal":"Consolidate duplicate storage rules","status":"open@new-session-log","status_sources":["open@new-session-log"],"last_touched":"2026-07-16","slug":"new-session-log","pointers":["handoff=new.md"]}
+{"topic":"storage","goal":"Consolidate old storage rules","status":"claimed-done@old-session-log","status_sources":["claimed-done@old-session-log"],"last_touched":"2026-07-01","slug":"old-session-log","pointers":["handoff=old.md"]}
+{"topic":"index","goal":"Refresh search index","status":"UNKNOWN@index-session-log","last_touched":"bad-date","slug":"index-session-log","pointers":[]}
+{bad

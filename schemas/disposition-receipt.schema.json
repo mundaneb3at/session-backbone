@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-backbone.capture-integrity.v1/disposition-receipt.schema.json",
+  "title": "SourceOccurrenceDisposition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id", "occurrence_id", "source_locator", "source_record_id",
+    "event_id", "event_class", "disposition", "reason_code"
+  ],
+  "properties": {
+    "receipt_id": {"type": "string", "minLength": 1},
+    "occurrence_id": {"type": "string", "minLength": 1},
+    "source_locator": {"type": "string", "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\r\\n]+#L[1-9][0-9]*$"},
+    "source_record_id": {"type": ["string", "null"], "minLength": 1},
+    "event_id": {"type": ["string", "null"], "minLength": 1},
+    "event_class": {"type": ["string", "null"], "enum": [
+      "ordinary_user_turn", "queued_mid_turn_user_message", "queue_operation_record",
+      "attachment_only_message", "message_with_attachment_and_text",
+      "steering_interruption", "resumed_session", "close_handoff_event", null
+    ]},
+    "disposition": {"enum": ["EMITTED", "CONTRIBUTED", "SUPPRESSED", "DROPPED", "REJECTED"]},
+    "reason_code": {"enum": [
+      "OWNER_EVENT_EMITTED", "SEMANTIC_EVENT_ASSEMBLY", "DUPLICATE_DURABLE_ID",
+      "NON_OWNER_ACTOR", "TOOL_RECORD", "SYSTEM_BOUNDARY", "CARRIED_HISTORY_ECHO",
+      "MALFORMED_JSON", "NON_OBJECT_JSON", "MALFORMED_RECORD", "MISSING_ACTOR",
+      "INVALID_ATTACHMENT", "MISSING_REQUIRED_FIELD", "INVALID_TIMESTAMP"
+    ]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"disposition": {"const": "EMITTED"}}, "required": ["disposition"]},
+      "then": {"properties": {"source_record_id": {"type": "string", "minLength": 1}, "event_id": {"type": "string", "minLength": 1}, "event_class": {"type": "string"}, "reason_code": {"const": "OWNER_EVENT_EMITTED"}}}
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "CONTRIBUTED"}}, "required": ["disposition"]},
+      "then": {"properties": {"source_record_id": {"type": "string", "minLength": 1}, "event_id": {"type": "string", "minLength": 1}, "event_class": {"type": "string"}, "reason_code": {"const": "SEMANTIC_EVENT_ASSEMBLY"}}}
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "DROPPED"}}, "required": ["disposition"]},
+      "then": {"properties": {"source_record_id": {"type": "string", "minLength": 1}, "event_id": {"type": "string", "minLength": 1}, "event_class": {"type": "string"}, "reason_code": {"const": "DUPLICATE_DURABLE_ID"}}}
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "SUPPRESSED"}}, "required": ["disposition"]},
+      "then": {"properties": {"event_class": {"type": "null"}, "reason_code": {"enum": ["NON_OWNER_ACTOR", "TOOL_RECORD", "SYSTEM_BOUNDARY", "CARRIED_HISTORY_ECHO"]}}}
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "REJECTED"}}, "required": ["disposition"]},
+      "then": {"properties": {"event_class": {"type": "null"}, "reason_code": {"enum": ["MALFORMED_JSON", "NON_OBJECT_JSON", "MALFORMED_RECORD", "MISSING_ACTOR", "INVALID_ATTACHMENT", "MISSING_REQUIRED_FIELD", "INVALID_TIMESTAMP"]}}}
+    }
+  ]
+}

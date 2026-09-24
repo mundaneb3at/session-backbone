@@ -1,0 +1,6 @@
+{
+  "_readme": "a docs key, and a bare string: must be skipped, never iterated as characters",
+  "not a list": "chest",
+  "chest pin loop": ["chest pin"],
+  "thread with no close-row match": ["quantum banana"]
+}

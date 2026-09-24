@@ -1,0 +1,77 @@
+{
+  "by_disposition": {
+    "CONTRIBUTED": 5,
+    "DROPPED": 3,
+    "EMITTED": 104,
+    "REJECTED": 11,
+    "SUPPRESSED": 46
+  },
+  "by_event_class": {
+    "attachment_only_message": {
+      "contributing_occurrences": 4,
+      "dropped_occurrences": 0,
+      "emitted_events": 4,
+      "semantic_events": 4
+    },
+    "close_handoff_event": {
+      "contributing_occurrences": 7,
+      "dropped_occurrences": 0,
+      "emitted_events": 7,
+      "semantic_events": 7
+    },
+    "message_with_attachment_and_text": {
+      "contributing_occurrences": 7,
+      "dropped_occurrences": 0,
+      "emitted_events": 5,
+      "semantic_events": 5
+    },
+    "ordinary_user_turn": {
+      "contributing_occurrences": 63,
+      "dropped_occurrences": 3,
+      "emitted_events": 60,
+      "semantic_events": 60
+    },
+    "queue_operation_record": {
+      "contributing_occurrences": 9,
+      "dropped_occurrences": 0,
+      "emitted_events": 9,
+      "semantic_events": 9
+    },
+    "queued_mid_turn_user_message": {
+      "contributing_occurrences": 3,
+      "dropped_occurrences": 0,
+      "emitted_events": 3,
+      "semantic_events": 3
+    },
+    "resumed_session": {
+      "contributing_occurrences": 8,
+      "dropped_occurrences": 0,
+      "emitted_events": 8,
+      "semantic_events": 8
+    },
+    "steering_interruption": {
+      "contributing_occurrences": 8,
+      "dropped_occurrences": 0,
+      "emitted_events": 8,
+      "semantic_events": 8
+    }
+  },
+  "by_reason_code": {
+    "CARRIED_HISTORY_ECHO": 2,
+    "DUPLICATE_DURABLE_ID": 3,
+    "INVALID_ATTACHMENT": 1,
+    "MALFORMED_JSON": 4,
+    "MALFORMED_RECORD": 2,
+    "MISSING_ACTOR": 2,
+    "NON_OBJECT_JSON": 2,
+    "NON_OWNER_ACTOR": 29,
+    "OWNER_EVENT_EMITTED": 104,
+    "SEMANTIC_EVENT_ASSEMBLY": 5,
+    "SYSTEM_BOUNDARY": 5,
+    "TOOL_RECORD": 10
+  },
+  "total_dispositions": 169,
+  "total_emitted_events": 104,
+  "total_semantic_owner_events": 104,
+  "total_source_occurrences": 169
+}

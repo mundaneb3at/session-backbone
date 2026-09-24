@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-backbone.capture-integrity.v1/production-event.schema.json",
+  "title": "CanonicalOwnerEvent",
+  "x-equalCardinality": [[
+    "source_record_ids", "source_occurrence_ids", "provenance.source_locators"
+  ]],
+  "x-derivationCardinality": {
+    "countPath": "source_occurrence_ids",
+    "valuePath": "provenance.derivation",
+    "one": "DIRECT_SOURCE_FIELDS",
+    "many": "MULTI_RECORD_ASSEMBLY"
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id", "source_record_ids", "source_occurrence_ids", "session_id",
+    "resume_of", "logical_seq", "timestamp", "actor", "event_class",
+    "text_blocks", "attachments", "tool_call_id", "boundary", "provenance"
+  ],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "source_record_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "source_occurrence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "session_id": {"type": "string", "minLength": 1},
+    "resume_of": {"type": ["string", "null"], "minLength": 1},
+    "logical_seq": {"type": "integer", "minimum": 1},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9](\\.[0-9]*[1-9])?Z$"},
+    "actor": {"const": "owner"},
+    "event_class": {"enum": [
+      "ordinary_user_turn", "queued_mid_turn_user_message", "queue_operation_record",
+      "attachment_only_message", "message_with_attachment_and_text",
+      "steering_interruption", "resumed_session", "close_handoff_event"
+    ]},
+    "text_blocks": {"type": "array", "items": {"type": "string"}},
+    "attachments": {
+      "type": "array", "uniqueItems": true, "x-uniqueBy": "id",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "name", "mime_type", "byte_count", "sha256"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "name": {"type": "string", "minLength": 1},
+          "mime_type": {"type": "string", "minLength": 1},
+          "byte_count": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "tool_call_id": {"type": ["string", "null"], "minLength": 1},
+    "boundary": {"type": ["string", "null"], "minLength": 1},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_locators", "derivation"],
+      "properties": {
+        "source_locators": {"type": "array", "items": {"type": "string", "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\r\\n]+#L[1-9][0-9]*$"}, "minItems": 1, "uniqueItems": true},
+        "derivation": {"enum": ["DIRECT_SOURCE_FIELDS", "MULTI_RECORD_ASSEMBLY"]}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"event_class": {"const": "ordinary_user_turn"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "attachments": {"maxItems": 0}, "resume_of": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "queued_mid_turn_user_message"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "boundary": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "queue_operation_record"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "boundary": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "attachment_only_message"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"maxItems": 0}, "attachments": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "message_with_attachment_and_text"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "attachments": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "steering_interruption"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "boundary": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "resumed_session"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "resume_of": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"event_class": {"const": "close_handoff_event"}}, "required": ["event_class"]},
+      "then": {"properties": {"text_blocks": {"minItems": 1}, "boundary": {"type": "string", "minLength": 1}}}
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+pattern,disposition,reason
+.,keep-in-place,fixture root
+alpha,keep-in-place,fixture content
