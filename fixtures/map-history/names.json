@@ -1,0 +1,4 @@
+{
+  "_readme": "fixture only. Key is the sha1 of the cluster signature, so it changes whenever clustering changes - the self-test asserts this label is applied, which is what catches a silent clustering change.",
+  "f27f955639": "chest pin recurrence"
+}

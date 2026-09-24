@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p "test_*.py"
+      - name: census self-test
+        run: python census.py --self-test
+      - name: threads-build self-test
+        run: python threads-build.py --self-test
+      - name: threads-query self-test
+        run: python threads-query.py --self-test
+      - name: prompt-cluster self-test
+        run: python prompt-cluster.py --self-test
+      - name: export-convert self-test
+        run: python export-convert.py --self-test
+      - name: map-history self-test
+        run: python map-history.py --self-test

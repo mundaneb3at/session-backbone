@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+
+# Self-test output artifacts that embed machine-local absolute paths.
+# threads-build.py --self-test rewrites these on every run with the paths of
+# whatever machine ran it; committing any version would pin one machine's
+# filesystem into the repo. The directory itself stays (tracked .gitkeep).
+fixtures/_selftest/threads/THREADS.md
+fixtures/_selftest/threads/threads.jsonl
+fixtures/_selftest/threads/MAP-HISTORY.md
+fixtures/_selftest/plans/

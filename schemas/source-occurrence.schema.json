@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-backbone.capture-integrity.v1/source-occurrence.schema.json",
+  "title": "LosslessSourceOccurrence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "occurrence_id", "source_locator", "line_number", "raw_line_sha256",
+    "raw_text", "parse_status", "record"
+  ],
+  "properties": {
+    "occurrence_id": {"type": "string", "minLength": 1},
+    "stream_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "fixture_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "source_locator": {"type": "string", "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\r\\n]+#L[1-9][0-9]*$"},
+    "line_number": {"type": "integer", "minimum": 1},
+    "raw_line_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "raw_text": {"type": "string"},
+    "parse_status": {"enum": ["OBJECT", "NON_OBJECT_JSON", "MALFORMED_JSON"]},
+    "record": {"type": ["object", "null"]}
+  },
+  "oneOf": [
+    {"required": ["stream_id"], "not": {"required": ["fixture_id"]}},
+    {"required": ["fixture_id"], "not": {"required": ["stream_id"]}}
+  ],
+  "allOf": [
+    {
+      "if": {"properties": {"parse_status": {"const": "OBJECT"}}, "required": ["parse_status"]},
+      "then": {"properties": {"record": {"type": "object"}}},
+      "else": {"properties": {"record": {"type": "null"}}}
+    }
+  ]
+}

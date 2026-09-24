@@ -1,0 +1,27 @@
+[
+  {
+    "uuid": "11111111-1111-1111-1111-111111111111",
+    "name": "Both human message shapes",
+    "created_at": "2026-07-10T08:00:00Z",
+    "updated_at": "2026-07-16T09:00:00Z",
+    "chat_messages": [
+      {"uuid": "m1", "sender": "human", "created_at": "2026-07-10T08:00:00Z", "text": "First human prompt.\nIt spans two lines."},
+      {"uuid": "m2", "sender": "assistant", "created_at": "2026-07-10T08:01:00Z", "text": "Assistant text must not appear."},
+      {"uuid": "m3", "sender": "human", "created_at": "2026-07-10T08:02:00Z", "content": [{"type": "text", "text": "Second human prompt."}, {"type": "text", "text": "With a second text block."}]}
+    ]
+  },
+  {
+    "uuid": "22222222-2222-2222-2222-222222222222",
+    "name": "Older conversation",
+    "created_at": "2026-05-01T08:00:00Z",
+    "updated_at": "2026-05-02T09:00:00Z",
+    "chat_messages": [{"uuid": "m4", "sender": "human", "text": "Old prompt."}]
+  },
+  {
+    "uuid": "33333333-3333-3333-3333-333333333333",
+    "name": "No human messages",
+    "created_at": "2026-07-11T08:00:00Z",
+    "updated_at": "2026-07-12T09:00:00Z",
+    "chat_messages": [{"uuid": "m5", "sender": "assistant", "text": "Only an assistant message."}]
+  }
+]
